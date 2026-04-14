@@ -100,6 +100,7 @@ if __name__ == "__main__":
     data_process = data_process.dropna(subset=['keywords', 'objective'])
     data_process.reset_index(drop=True, inplace=True)
     
+    print(f"There are {len(data_process)} projects to be processed")
     
     """same idea as in eval, generate anchors (queries) via local llm
     and extract positives with bm25 + ranker """
@@ -233,10 +234,10 @@ if __name__ == "__main__":
         )["response"]
         
         
-        print(f"Project: {row['objective']}\n")
-        print(f"Short query: {short_resp}")
-        print(f"Medium query: {medium_resp}")
-        print(f"Problem query: {problem_resp}\n")
+        # print(f"Project: {row['objective']}\n")
+        # print(f"Short query: {short_resp}")
+        # print(f"Medium query: {medium_resp}")
+        # print(f"Problem query: {problem_resp}\n")
         
         # get keywords from our topic and tokenize via BM25 tokenizer
         keywords_query_project = bm25s.tokenize(row["keywords"])  # we could also tokenize the query, but keywords will typically be more complete
@@ -261,9 +262,9 @@ if __name__ == "__main__":
         record_medium = {"query": medium_resp, "positives": top_valid_medium["doc_id"].values.tolist()}
         record_problem = {"query": problem_resp, "positives": top_valid_problem["doc_id"].values.tolist()}
     
-        print(f"\nShort ones: {record_short}\n")
-        print(f"Medium ones: {record_medium}\n")
-        print(f"Problem ones: {record_problem}\n")
+        # print(f"\nShort ones: {record_short}\n")
+        # print(f"Medium ones: {record_medium}\n")
+        # print(f"Problem ones: {record_problem}\n")
         
         # append the records
         train_set.append(record_short)
