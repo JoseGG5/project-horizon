@@ -16,8 +16,15 @@ from tqdm import tqdm
 import torch
 import bm25s
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from pydantic import BaseModel
 
 from utils import load_projects, load_eval_set
+
+
+class QueryResponse(BaseModel):
+  short_query: str
+  medium_query: str
+  problem_query: str
 
 
 def setup_device():
@@ -90,16 +97,17 @@ if __name__ == "__main__":
     eval_projects = list(set(eval_projects))
     data = data[~data["id"].isin(eval_projects)]
     
+    # drop all with objective and keywords missing
+    data = data.dropna(subset=['keywords', 'objective'])
+    data.reset_index(drop=True, inplace=True)
+    
     # get the sampled dataset
     data_process = data.groupby(
         "frameworkProgramme",
         group_keys=False
         ).apply(lambda x: x.sample(frac=args.prop, random_state=42))
     
-    # drop all with objective and keywords missing
-    data_process = data_process.dropna(subset=['keywords', 'objective'])
-    data_process.reset_index(drop=True, inplace=True)
-    
+     
     print(f"There are {len(data_process)} projects to be processed")
     
     """same idea as in eval, generate anchors (queries) via local llm
@@ -126,118 +134,109 @@ if __name__ == "__main__":
         useful for people that searchs straight how to solve a problem
         (eg. how to prevent phishing attacks in company email systems)"""
     
-    # prepare prompts
-    short_template = Template(""" You are generating a search query for an information retrieval benchmark.
-
-                Given the following project summary, produce ONE realistic search query that a user might type into a search engine to find projects like this.
-
-                Requirements:
-                - It must sound like something a human would actually search for.
-                - Maximum 6 words.
-                - Avoid prepositions unless necessary.
-                - It should capture the main goal, technology, or application of the project.
-                - Prefer natural search wording over paper-title wording.
-                - Do NOT write a full sentence.
-                - Do NOT copy long phrases verbatim from the summary.
-                - Do NOT mention "project", "research", "study", or funding-related terms.
-                - Do NOT invent information.
-                - Return ONLY the query text.
-                
-
-                Good query style examples:
-                - AI for autonomous robots
-                - battery recycling for electric vehicles
-                - digital tools for rural communities
-                - gender equality in agriculture
-                - small RNA structure prediction methods
-
-                Project summary: $objective""")
-                
-    medium_template = Template(""" You are generating a search query for an information retrieval benchmark.
-                        Given the following project summary, produce ONE realistic medium-length
-                        natural search query that a user might type into a search engine to find projects like this.
-                    
-                        Requirements:
-                        - It must sound natural and realistic, like a human search query.
-                        - It should reflect a clear search intent.
-                        - Capture the main objective, technology, or application of the project.
-                        - Use natural search phrasing rather than title-like or academic wording.
-                        - Keep it moderately detailed: target length 8 to 20 words.
-                        - Prefer specific and discriminative wording over vague generic expressions.
-                        - Do NOT write a complete grammatical sentence.
-                        - Do NOT copy long phrases verbatim from the summary.
-                        - Do NOT mention "project", "research", "study", or funding-related terms.
-                        - Do NOT invent information.
-                        - Return ONLY the query text.
-                        
-                        Good query style examples:
-                        - AI methods to detect phishing emails in small businesses
-                        - technologies for monitoring marine biodiversity with underwater sensors
-                        - blockchain solutions for improving food supply chain traceability
-                        - machine learning tools for early cancer image diagnosis
-                        
-                        Project summary: $objective
-                        """)
-    
-    problem_template = Template(""" You are generating a search query for an information retrieval benchmark.
-    
-        Given the following project summary, produce ONE realistic problem-oriented search query that a user might type when trying to solve the problem addressed by this project.
+    # prepare the mega prompt :)
+    combined_template = Template("""
+        Generate exactly 3 realistic search engine queries from the project summary.
         
-        Requirements:
-        - The query must express a real user need, challenge, or problem to solve.
-        - Focus on the problem the project addresses, not just the technology used.
-        - It should sound like something a person would type when looking for solutions.
-        - Use natural human search wording.
-        - Target length: 8 to 18 words.
-        - Prefer concrete problem descriptions over vague general wording.
-        - Do NOT write a full sentence with punctuation at the end.
+        These queries are for an information retrieval benchmark.
+        They must resemble real Google searches written by humans.
+        
+        Return ONLY one valid JSON object exactly in this format:
+        {
+          "short_query": "...",
+          "medium_query": "...",
+          "problem_query": "..."
+        }
+        
+        STRICT GLOBAL RULES:
+        - Output must be valid JSON only.
+        - Do NOT add explanations, markdown, comments, or extra text.
+        - Queries must sound like real human search engine searches.
+        - NEVER generate chatbot-style prompts.
+        - NEVER generate academic question sentences.
+        - NEVER generate full grammatical explanatory sentences.
+        - NEVER start any query with:
+          How, What, Why, When, Where, Who, Can, Could, Should, Does, Do
+        - If a query sounds like a question, rewrite it into compact search format.
+        - Prefer noun phrases and keyword search style.
+        - Keep wording concise and retrieval-oriented.
+        - Do NOT invent facts not present in the summary.
+        - Do NOT mention these words:
+          project, research, study, funding, proposal
         - Do NOT copy long phrases verbatim from the summary.
-        - Do NOT mention "project", "research", "study", or funding-related terms.
-        - Do NOT invent information.
-        - Return ONLY the query text.
+        - The three queries must be clearly different in wording and intent.
+        - No punctuation at the end.
+        - Avoid paper-title style phrasing.
+        - Avoid secondary contextual details like geographic regions unless central to the scientific problem.
         
-        Good query style examples:
-        - how to prevent phishing attacks in company email systems
-        - how to improve food traceability in agricultural supply chains
-        - ways to monitor endangered marine species underwater
-        - how to reduce battery waste from electric vehicles
+        FIELD RULES:
         
-        Project summary: $objective
+        short_query:
+        - Maximum 6 words
+        - Compact keyword-style query
+        - Minimal and highly concise
+        
+        medium_query:
+        - 8 to 14 words
+        - Natural descriptive search query
+        - Must express clear search intent
+        - Must NOT be phrased as a question
+        - Avoid title-like academic phrasing; prefer natural search wording.
+        
+        problem_query:
+        - 8 to 14 words
+        - Express a practical problem someone is trying to solve
+        - Must be compact keyword search style
+        - Must NOT be phrased as a question
+        - Prefer formats like:
+          "identify high risk melanoma patients after UV exposure"
+        
+        STYLE EXAMPLES:
+        
+        GOOD short_query:
+        UV melanoma risk genetics
+        
+        GOOD medium_query:
+        genetic susceptibility factors in melanoma caused by ultraviolet radiation exposure
+        
+        GOOD problem_query:
+        identify high risk melanoma patients after UV exposure using genetic markers
+        
+        BAD examples:
+        How does UV radiation increase melanoma risk
+        What strategies can identify melanoma patients
+        Why is UV exposure linked to melanoma
+        
+        Project summary:
+        $objective
         """)
-    
+            
+    # setup client
     client = Client(host='http://192.168.2.12:11434')
     
-    train_set = []
-    for i, row in tqdm(data_process.iterrows(), desc="train construction"):
-        
-        short_prompt = short_template.substitute(objective=row["objective"])
-        medium_prompt = medium_template.substitute(objective=row["objective"])
-        problem_prompt = problem_template.substitute(objective=row["objective"])
+    for i, row in tqdm(data_process.iterrows(), desc="train construction", total=len(data_process)):
+      
+        combined_prompt = combined_template.substitute(objective=row["objective"])
         
         # generate query for the project
-        short_resp = client.generate(
+        combined_resp = client.chat(
             model='gpt-oss:20b',
-            prompt=short_prompt,
-            stream=False
-        )["response"]
+            messages=[{"role": "user", "content": combined_prompt}],
+            stream=False,
+            format=QueryResponse.model_json_schema(),
+            options={
+                "temperature": 0
+            }
+        )
         
-        medium_resp = client.generate(
-            model='gpt-oss:20b',
-            prompt=medium_prompt,
-            stream=False
-        )["response"]
+        # parse the json
+        raw = combined_resp.message.content
+        parsed = QueryResponse.model_validate_json(raw)
         
-        problem_resp = client.generate(
-            model='gpt-oss:20b',
-            prompt=problem_prompt,
-            stream=False
-        )["response"]
-        
-        
-        # print(f"Project: {row['objective']}\n")
-        # print(f"Short query: {short_resp}")
-        # print(f"Medium query: {medium_resp}")
-        # print(f"Problem query: {problem_resp}\n")
+        print(f"Project: {row['objective']}\n")
+        print(f"Short query: {parsed.short_query}\n") 
+        print(f"Medium query: {parsed.medium_query}\n")
+        print(f"Problem query: {parsed.problem_query}\n")
         
         # get keywords from our topic and tokenize via BM25 tokenizer
         keywords_query_project = bm25s.tokenize(row["keywords"])  # we could also tokenize the query, but keywords will typically be more complete
@@ -249,32 +248,25 @@ if __name__ == "__main__":
         idxs_bm25 = data_process["id"].iloc[top_k_idx]
             
         # use the reranker to enhance the results
-        pairs_short = [[short_resp, doc] for doc in docs_bm25]
-        pairs_medium = [[medium_resp, doc] for doc in docs_bm25]
-        pairs_problem = [[problem_resp, doc] for doc in docs_bm25]
+        pairs_short = [[parsed.short_query, doc] for doc in docs_bm25]
+        pairs_medium = [[parsed.medium_query, doc] for doc in docs_bm25]
+        pairs_problem = [[parsed.problem_query, doc] for doc in docs_bm25]
         
         top_valid_short = infer(pairs=pairs_short, model=model, threshold=0.5, row=row, n_positives=args.n_pos)
         top_valid_medium = infer(pairs=pairs_medium, model=model, threshold=0.5, row=row, n_positives=args.n_pos)
         top_valid_problem = infer(pairs=pairs_problem, model=model, threshold=0.5, row=row, n_positives=args.n_pos)
         
         # create train records
-        record_short = {"query": short_resp, "positives": top_valid_short["doc_id"].values.tolist()}
-        record_medium = {"query": medium_resp, "positives": top_valid_medium["doc_id"].values.tolist()}
-        record_problem = {"query": problem_resp, "positives": top_valid_problem["doc_id"].values.tolist()}
-    
-        # print(f"\nShort ones: {record_short}\n")
-        # print(f"Medium ones: {record_medium}\n")
-        # print(f"Problem ones: {record_problem}\n")
+        record_short = {"query": parsed.short_query, "positives": top_valid_short["doc_id"].values.tolist()}
+        record_medium = {"query": parsed.medium_query, "positives": top_valid_medium["doc_id"].values.tolist()}
+        record_problem = {"query": parsed.problem_query, "positives": top_valid_problem["doc_id"].values.tolist()}
         
-        # append the records
-        train_set.append(record_short)
-        train_set.append(record_medium)
-        train_set.append(record_problem)
-        
-
-    with open("train.jsonl", "w", encoding="utf-8") as f:
-        for item in eval_set:
-            f.write(json.dumps(item, ensure_ascii=False) + "\n")    
-        
+        # write the three to a train jsonl file
+        with open("train.jsonl", "w", encoding="utf-8") as f:            
+            f.write(json.dumps(record_short, ensure_ascii=False) + "\n")
+            f.write(json.dumps(record_medium, ensure_ascii=False) + "\n")
+            f.write(json.dumps(record_problem, ensure_ascii=False) + "\n")
+            
+            
     
     
