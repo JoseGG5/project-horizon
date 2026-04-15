@@ -1,4 +1,5 @@
 import os
+import json
 
 import pandas as pd
 
@@ -43,3 +44,27 @@ def load_projects(path_csvs: str, mono: bool = False) -> pd.DataFrame:
     projs.reset_index(drop=True, inplace=True)
     return projs
 
+
+def load_eval_set(path_set: str) -> list:
+    """
+    Loads the eval set
+
+    Parameters
+    ----------
+    path_set : str
+        Path to the evaluation set generated.
+
+    Returns
+    -------
+    list
+        The eval set.
+
+    """
+    
+    data = []
+
+    with open(path_set, "r", encoding="utf-8") as f:
+        for line in f:
+            data.append(json.loads(line))
+            
+    return data
