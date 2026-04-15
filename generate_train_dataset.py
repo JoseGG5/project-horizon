@@ -9,6 +9,7 @@ import os
 import argparse
 from string import Template
 import json
+import logging
 
 import pandas as pd
 from ollama import Client
@@ -17,6 +18,7 @@ import torch
 import bm25s
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from pydantic import BaseModel
+import tiktoken
 
 from utils import load_projects, load_eval_set
 
@@ -87,6 +89,15 @@ if __name__ == "__main__":
     parser.add_argument("-pr", "--prop", type=float, help="The proportion of samples from the full corpus to use (eg 0.5)", required=True)
     
     args = parser.parse_args()
+    
+    # set logging
+    logging.basicConfig(
+        filename="trainset_pipe.log",
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        encoding="utf-8"
+    )
+    
     
     # load full dataset
     data = load_projects(args.path_data)
@@ -210,13 +221,23 @@ if __name__ == "__main__":
         Project summary:
         $objective
         """)
-            
+          
     # setup client
     client = Client(host='http://192.168.2.12:11434')
+    
+    # additionally get the tokenizer used in gpt-oss to check that we are in feasible context length
+    encoding = tiktoken.get_encoding("o200k_harmony")
     
     for i, row in tqdm(data_process.iterrows(), desc="train construction", total=len(data_process)):
       
         combined_prompt = combined_template.substitute(objective=row["objective"])
+        
+        tokens = encoding.encode(combined_prompt)
+        if len(tokens) > 4096:
+            logging.info(
+                f"Exceeded context window | project_id={row['id']} | programme={row['frameworkProgramme']}"
+            )
+            continue
         
         # generate query for the project
         combined_resp = client.chat(
@@ -225,13 +246,21 @@ if __name__ == "__main__":
             stream=False,
             format=QueryResponse.model_json_schema(),
             options={
-                "temperature": 0
+                "temperature": 0,
+                "num_ctx": 4096
             }
         )
         
         # parse the json
         raw = combined_resp.message.content
-        parsed = QueryResponse.model_validate_json(raw)
+        
+        try:
+            parsed = QueryResponse.model_validate_json(raw)
+        except Exception as e:
+            logging.error(
+                f"JSON parse failed | project_id={row['id']} | programme={row['frameworkProgramme']} | error={str(e)} | raw_output={raw}"
+            )
+            continue
         
         print(f"Project: {row['objective']}\n")
         print(f"Short query: {parsed.short_query}\n") 

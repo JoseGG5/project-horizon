@@ -9,6 +9,7 @@ dependencies = [
     "ollama>=0.6.1",
     "pandas>=3.0.2",
     "sentence-transformers>=5.4.0",
+    "tiktoken>=0.12.0",
     "torch>=2.7.1",
     "tqdm>=4.67.3",
     "transformers>=5.5.3",
