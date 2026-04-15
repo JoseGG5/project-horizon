@@ -259,7 +259,7 @@ if __name__ == "__main__":
             parsed = QueryResponse.model_validate_json(raw)
         except Exception as e:
             logging.error(
-                f"JSON parse failed | project_id={row['id']} | programme={row['frameworkProgramme']} | error={str(e)} | raw_output={raw}"
+                f"JSON parse failed | project_id={row['id']} | error={str(e)} | raw_output={raw}"
             )
             continue
         
