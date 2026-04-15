@@ -262,11 +262,6 @@ if __name__ == "__main__":
             )
             continue
         
-        print(f"Project: {row['objective']}\n")
-        print(f"Short query: {parsed.short_query}\n") 
-        print(f"Medium query: {parsed.medium_query}\n")
-        print(f"Problem query: {parsed.problem_query}\n")
-        
         # get keywords from our topic and tokenize via BM25 tokenizer
         keywords_query_project = bm25s.tokenize(row["keywords"])  # we could also tokenize the query, but keywords will typically be more complete
         
