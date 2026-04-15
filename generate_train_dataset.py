@@ -118,6 +118,8 @@ if __name__ == "__main__":
         group_keys=False
         ).apply(lambda x: x.sample(frac=args.prop, random_state=42))
     
+    print(data_process.iloc[91])
+    
      
     print(f"There are {len(data_process)} projects to be processed")
     
@@ -247,13 +249,12 @@ if __name__ == "__main__":
             format=QueryResponse.model_json_schema(),
             options={
                 "temperature": 0,
-                "num_ctx": 4096
+                "num_ctx": 4096  # we should be around 1k tokens more or less
             }
         )
         
         # parse the json
         raw = combined_resp.message.content
-        
         try:
             parsed = QueryResponse.model_validate_json(raw)
         except Exception as e:
@@ -286,7 +287,7 @@ if __name__ == "__main__":
         record_problem = {"query": parsed.problem_query, "positives": top_valid_problem["doc_id"].values.tolist()}
         
         # write the three to a train jsonl file
-        with open("train.jsonl", "w", encoding="utf-8") as f:            
+        with open("train.jsonl", "a", encoding="utf-8") as f:            
             f.write(json.dumps(record_short, ensure_ascii=False) + "\n")
             f.write(json.dumps(record_medium, ensure_ascii=False) + "\n")
             f.write(json.dumps(record_problem, ensure_ascii=False) + "\n")
