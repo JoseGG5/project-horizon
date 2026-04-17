@@ -33,4 +33,5 @@ if __name__ == "__main__":
     data.reset_index(drop=True, inplace=True)    
     
     # get train data
+    train_set = load_eval_set("train.jsonl")  # should unify this into a single function
     train_set = load_eval_set(args.pt)  # should unify this into a single function
