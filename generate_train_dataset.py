@@ -12,7 +12,7 @@ import json
 import logging
 
 import pandas as pd
-from ollama import Client
+from openai import OpenAI
 from tqdm import tqdm
 import torch
 import bm25s
@@ -224,8 +224,11 @@ if __name__ == "__main__":
         $objective
         """)
           
-    # setup client
-    client = Client(host='http://192.168.2.12:11434')
+    # setup vLLM client
+    client = OpenAI(
+        base_url="http://192.168.2.12:8001/v1",   
+        api_key="dummy"  # unauth server
+    )
     
     # additionally get the tokenizer used in gpt-oss to check that we are in feasible context length
     encoding = tiktoken.get_encoding("o200k_harmony")
@@ -242,19 +245,22 @@ if __name__ == "__main__":
             continue
         
         # generate query for the project
-        combined_resp = client.chat(
-            model='gpt-oss:20b',
+        combined_resp = client.chat.completions.create(
+            model='openai/gpt-oss-20b',
             messages=[{"role": "user", "content": combined_prompt}],
             stream=False,
-            format=QueryResponse.model_json_schema(),
-            options={
-                "temperature": 0,
-                "num_ctx": 4096  # we should be around 1k tokens more or less
-            }
+            temperature=0,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "query_response",
+                    "schema": QueryResponse.model_json_schema(),
+                },
+            },
         )
         
         # parse the json
-        raw = combined_resp.message.content
+        raw = combined_resp.choices[0].message.content
         try:
             parsed = QueryResponse.model_validate_json(raw)
         except Exception as e:
