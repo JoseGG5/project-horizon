@@ -117,10 +117,6 @@ if __name__ == "__main__":
         "frameworkProgramme",
         group_keys=False
         ).apply(lambda x: x.sample(frac=args.prop, random_state=42))
-    
-    # TODO: DELETE THIS ONCE FULL TRAIN SET IS DONE
-    data_process = data_process.iloc[3561:]  # patch to recover training with vllm
-    
      
     print(f"There are {len(data_process)} projects to be processed")
     
