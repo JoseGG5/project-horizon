@@ -29,6 +29,8 @@ if __name__ == "__main__":
     parser.add_argument("-pt", "--path_train", type=str, help="Path to train set", required=True)
     parser.add_argument("-d", "--path_data", type=str, help="Path to raw corpus", required=True)
     parser.add_argument("-rn", "--run_name", type=str, help="Name of the run for W&B logging", required=True)
+    parser.add_argument("-bs", "--batch_size", type=int, help="Total batch size per device", required=True)
+    parser.add_argument("-cbs", "--cached_batch_size", type=int, help="Size of chunks for cached loss", required=True)
     
     args = parser.parse_args()    
     
@@ -68,7 +70,7 @@ if __name__ == "__main__":
     )
     
     # setup loss (cached for larger batches that is beneficial in mnrl and matryoshka for multiple dims without performnace loss)
-    loss = CachedMultipleNegativesRankingLoss(model, mini_batch_size=32)
+    loss = CachedMultipleNegativesRankingLoss(model, mini_batch_size=args.cached_batch_size)
     loss = MatryoshkaLoss(model, loss, matryoshka_dims=[768, 512, 384, 128])
     
     # setup wandb
@@ -81,7 +83,7 @@ if __name__ == "__main__":
     train_args = SentenceTransformerTrainingArguments(
         output_dir="cachedmnrl-matryoshka-modernbert",
         num_train_epochs=3,
-        per_device_train_batch_size=64,
+        per_device_train_batch_size=args.batch_size,
         learning_rate=2e-5,
         warmup_ratio=0.1,
         fp16=False,
