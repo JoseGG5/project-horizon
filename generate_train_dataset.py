@@ -369,7 +369,6 @@ if __name__ == "__main__":
         # create train records
         record = {"query": parsed.query, "positives": top_valid["doc_id"].values.tolist()}
         
-        break
         # write the three to a train jsonl file
         with open("train.jsonl", "a", encoding="utf-8") as f:            
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
