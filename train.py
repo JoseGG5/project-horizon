@@ -8,6 +8,8 @@ Created on Thu Apr 16 08:38:07 2026
 import json
 import argparse
 
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.sentence_transformer.losses import CachedMultipleNegativesRankingLoss, MatryoshkaLoss
 
 from utils import load_projects, load_eval_set
 
@@ -47,4 +49,10 @@ if __name__ == "__main__":
         for positive in record["positives"]:
             train_set_v2.append({"anchor": record["query"], "positive": data[data["id"] == positive]["objective"].values[0]})
     
+    # setup the model
+    model = SentenceTransformer("joe32140/ModernBERT-base-msmarco")
+    
+    # setup loss (cached for larger batches that is beneficial in mnrl and matryoshka for multiple dims without performnace loss)
+    loss = CachedMultipleNegativesRankingLoss(model, mini_batch_size=32)
+    loss = MatryoshkaLoss(model, loss, matryoshka_dims=[768, 512, 384, 128])
     
