@@ -50,9 +50,6 @@ if __name__ == "__main__":
     # get train data
     train_set = load_eval_set(args.path_train)  # should unify this into a single function
     
-    # fix broken queries that include SQL
-    train_set = [record for i, record in enumerate(train_set) if i not in [525, 526, 527]]
-    
     # convert the trainset to a good shape for MNRL training and setup HF Dataset
     train_set_v2 = []
     for record in train_set:
