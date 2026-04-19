@@ -38,7 +38,7 @@ if __name__ == "__main__":
     data = load_projects(args.path_data)
     
     # load eval set to exclude all projects in eval from train
-    eval_set = load_eval_set(args.path)
+    eval_set = load_eval_set(args.path_eval)
     eval_projects = [project_id for record in eval_set for project_id in record['positives']]    
     eval_projects = list(set(eval_projects))
     data = data[~data["id"].isin(eval_projects)]
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     data.reset_index(drop=True, inplace=True)    
     
     # get train data
-    train_set = load_eval_set(args.pt)  # should unify this into a single function
+    train_set = load_eval_set(args.path_train)  # should unify this into a single function
     
     # fix broken queries that include SQL
     train_set = [record for i, record in enumerate(train_set) if i not in [525, 526, 527]]
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     )
     
     # setup train args
-    args = SentenceTransformerTrainingArguments(
+    train_args = SentenceTransformerTrainingArguments(
         output_dir="cachedmnrl-matryoshka-modernbert",
         num_train_epochs=3,
         per_device_train_batch_size=64,
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     # setup trainer and train
     trainer = SentenceTransformerTrainer(
         model=model,
-        args=args,
+        args=train_args,
         train_dataset=train_dataset,
         loss=loss,
     )
