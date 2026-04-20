@@ -12,3 +12,4 @@ data/
 eval.jsonl
 train.jsonl
 trainset_pipe.log
+.env

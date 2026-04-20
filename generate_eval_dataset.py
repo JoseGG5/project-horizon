@@ -2,10 +2,12 @@ import os
 import random
 import json
 from pprint import pprint
+import argparse
+from string import Template
 
 import pandas as pd
 from tqdm import tqdm
-from ollama import Client
+from openai import OpenAI
 import bm25s
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
@@ -73,42 +75,52 @@ if __name__ == "__main__":
     retriever = bm25s.BM25()
     retriever.index(corpus_tokens)
 
-    # set ollama client for query generation
-    client = Client(host='http://192.168.2.12:11434')
+    # setup vLLM client
+    client = OpenAI(
+        base_url="http://192.168.2.12:8001/v1",   
+        api_key="dummy"  # unauth server
+    )
+    
+    prompt_temp = Template("""
+        You are generating a search query for an information retrieval benchmark.
+
+                    Given the following project summary, produce ONE realistic search query that a user might type into a search engine to find projects like this.
+
+                    Requirements:
+                    - It must sound like something a human would actually search for.
+                    - It should capture the main goal, technology, or application of the project.
+                    - Prefer natural search wording over paper-title wording.
+                    - Do NOT write a full sentence.
+                    - Do NOT copy long phrases verbatim from the summary.
+                    - Do NOT mention "project", "research", "study", or funding-related terms.
+                    - Do NOT invent information.
+                    - Return ONLY the query text.
+
+                    Good query style examples:
+                    - AI for autonomous robots
+                    - battery recycling for electric vehicles
+                    - digital tools for rural communities
+                    - gender equality in agriculture
+                    - small RNA structure prediction methods
+
+                    Project summary: $objective
+        """)
+    
     
     # start iterating
     for i, row in tqdm(stratified_sample.iterrows(), desc="eval construction"):
+        # overwrite the template
+        prompt = prompt_temp.substitute(objective=row["objective"])
         
         # generate query for the project
-        resp = client.generate(
-            model='gpt-oss:20b',
-            prompt=f"""You are generating a search query for an information retrieval benchmark.
-
-                        Given the following project summary, produce ONE realistic search query that a user might type into a search engine to find projects like this.
-
-                        Requirements:
-                        - It must sound like something a human would actually search for.
-                        - It should capture the main goal, technology, or application of the project.
-                        - Prefer natural search wording over paper-title wording.
-                        - Do NOT write a full sentence.
-                        - Do NOT copy long phrases verbatim from the summary.
-                        - Do NOT mention "project", "research", "study", or funding-related terms.
-                        - Do NOT invent information.
-                        - Return ONLY the query text.
-
-                        Good query style examples:
-                        - AI for autonomous robots
-                        - battery recycling for electric vehicles
-                        - digital tools for rural communities
-                        - gender equality in agriculture
-                        - small RNA structure prediction methods
-
-                        Project summary: {row["objective"]}
-                        """,
-            stream=False
+        resp = client.chat.completions.create(
+            model='openai/gpt-oss-20b',
+            messages=[{"role": "user", "content": prompt}],
+            stream=False,
+            temperature=0,
         )
-        query = resp["response"]
 
+        query = resp.choices[0].message.content
         print(f"query: {query}")
 
         # use all horizon corpus and a full bm25
@@ -163,6 +175,8 @@ if __name__ == "__main__":
         record = {"query": query, "positives": top_valid["doc_id"].values.tolist()}
         eval_set.append(record)
         
+        print(eval_set)
+        break
     
 
 
