@@ -28,6 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("-pe", "--path_eval", type=str, help="Path to eval set", required=True)
     parser.add_argument("-pt", "--path_train", type=str, help="Path to train set", required=True)
     parser.add_argument("-d", "--path_data", type=str, help="Path to raw corpus", required=True)
+    parser.add_argument("-po", "--path_output", type=str, help="Path to raw corpus", required=True)
     parser.add_argument("-rn", "--run_name", type=str, help="Name of the run for W&B logging", required=True)
     parser.add_argument("-bs", "--batch_size", type=int, help="Total batch size per device", required=True)
     parser.add_argument("-cbs", "--cached_batch_size", type=int, help="Size of chunks for cached loss", required=True)
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     
     # setup train args
     train_args = SentenceTransformerTrainingArguments(
-        output_dir="cachedmnrl-matryoshka-modernbert",
+        output_dir=args.path_output,
         num_train_epochs=3,
         per_device_train_batch_size=args.batch_size,
         learning_rate=2e-5,
