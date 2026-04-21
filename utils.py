@@ -45,9 +45,9 @@ def load_projects(path_csvs: str, mono: bool = False) -> pd.DataFrame:
     return projs
 
 
-def load_eval_set(path_set: str) -> list:
+def load_set(path_set: str) -> list:
     """
-    Loads the eval set
+    Loads the train/eval set (same jsonl format)
 
     Parameters
     ----------

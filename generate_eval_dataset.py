@@ -1,8 +1,6 @@
 import os
 import random
 import json
-from pprint import pprint
-import argparse
 from string import Template
 
 import pandas as pd
@@ -11,6 +9,7 @@ from openai import OpenAI
 import bm25s
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
+from dotenv import load_dotenv
 
 from utils import load_projects
 
@@ -39,6 +38,8 @@ if __name__ == "__main__":
     
     # order among chaos
     random.seed(42)
+
+    load_dotenv()
 
     # for eval only horizon projects
     projects = load_projects("data", mono=True)
@@ -77,7 +78,7 @@ if __name__ == "__main__":
 
     # setup vLLM client
     client = OpenAI(
-        base_url="http://192.168.2.12:8001/v1",   
+        base_url=os.getenv("VLLM_ADDRESS"),   
         api_key="dummy"  # unauth server
     )
     

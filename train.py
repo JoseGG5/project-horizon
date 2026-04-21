@@ -21,7 +21,7 @@ from sentence_transformers.sentence_transformer.training_args import (
 )
 import wandb
 
-from utils import load_projects, load_eval_set
+from utils import load_projects, load_set
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train script")
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     data = load_projects(args.path_data)
     
     # load eval set to exclude all projects in eval from train
-    eval_set = load_eval_set(args.path_eval)
+    eval_set = load_set(args.path_eval)
     eval_projects = [project_id for record in eval_set for project_id in record['positives']]    
     eval_projects = list(set(eval_projects))
     data = data[~data["id"].isin(eval_projects)]
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     data.reset_index(drop=True, inplace=True)    
     
     # get train data
-    train_set = load_eval_set(args.path_train)  # should unify this into a single function
+    train_set = load_set(args.path_train)  # should unify this into a single function
     
     # convert the trainset to a good shape for MNRL training and setup HF Dataset
     train_set_v2 = []

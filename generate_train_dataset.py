@@ -20,8 +20,9 @@ import bm25s
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from pydantic import BaseModel
 import tiktoken
+from dotenv import load_dotenv
 
-from utils import load_projects, load_eval_set
+from utils import load_projects, load_set
 
 
 class QueryResponse(BaseModel):
@@ -102,7 +103,7 @@ if __name__ == "__main__":
     data = load_projects(args.path_data)
     
     # load eval set to exclude all projects in eval from train
-    eval_set = load_eval_set(args.path)
+    eval_set = load_set(args.path)
     eval_projects = [project_id for record in eval_set for project_id in record['positives']]    
     eval_projects = list(set(eval_projects))
     data = data[~data["id"].isin(eval_projects)]
@@ -308,7 +309,7 @@ if __name__ == "__main__":
           
     # setup vLLM client
     client = OpenAI(
-        base_url="http://192.168.2.12:8001/v1",   
+        base_url=os.getenv("VLLM_ADDRESS"),   
         api_key="dummy"  # unauth server
     )
     

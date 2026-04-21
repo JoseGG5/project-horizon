@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 
-from utils import load_projects, load_eval_set
+from utils import load_projects, load_set
 
 
 def plot_mrl_metric(y_values: list[float], metric_name: str, dims: list[int]):
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     projects = load_projects("data", mono=True)
     
     # load the evaluation set
-    dataset = load_eval_set(path_set=args.path)
+    dataset = load_set(path_set=args.path)
     
     # check what we want to benchmark
     if not args.weights and args.model:
