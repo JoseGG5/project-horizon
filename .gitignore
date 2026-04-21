@@ -14,3 +14,4 @@ train.jsonl
 trainset_pipe.log
 .env
 outputs/
+models/
