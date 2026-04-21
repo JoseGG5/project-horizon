@@ -1,8 +1,16 @@
-# Projects
+# Project
 
 Fine-tuning and benchmarking a retrieval model for European funded projects using the FP7, H2020, and HORIZON corpora.
 
-The goal of this repository is to adapt a `SentenceTransformer` model based on ModernBERT so it retrieves project summaries better than a general-purpose encoder on this domain.
+The goal of this repository is to adapt a `SentenceTransformer` <3 model based on ModernBERT so it retrieves project summaries better than a general-purpose encoder on this domain.
+
+## Current Results
+
+The fine-tuned retriever improves over the compared baselines on both `Recall@k` and `MRR@k`. It beats more general models such as gte from Alibaba and also beats larger architectures such as ModernBert-large.
+
+![Recall comparison](assets/compare_recall.png)
+
+![MRR comparison](assets/compare_mrr.png)
 
 ## What This Repo Does
 
