@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 
 from utils import load_projects, load_eval_set
 
-# TODO: Add Matryoshka test to compare both tuned model and base model in different d
 
 def plot_mrl_metric(y_values: list[float], metric_name: str, dims: list[int]):
     """
