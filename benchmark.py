@@ -3,7 +3,6 @@ import logging
 from typing import Iterable, Sequence
 
 from sentence_transformers import SentenceTransformer
-import numpy as np
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 
@@ -28,7 +27,7 @@ def plot_mrl_metric(y_values: list[float], metric_name: str, dims: list[int]):
     if len(y_values) != len(dims):
         raise ValueError("y_values must contain exactly 4 values.")
 
-    if "Recall" not in metric_name or "MRR" not in metric_name:
+    if "Recall" not in metric_name and "MRR" not in metric_name:
         raise ValueError("metric_name incorrect, should contain Recall or MRR")
     
     ylabel = metric_name + " (higher is better)"
@@ -309,7 +308,7 @@ if __name__ == "__main__":
             recalls_dims.append(mean_recall)
             mrrs_dims.append(mrr)         
         
-        plot_mrl_metric(mean_recall, f"Recall@{args.k}", matryoshka_dims)
+        plot_mrl_metric(recalls_dims, f"Recall@{args.k}", matryoshka_dims)
         plot_mrl_metric(mrrs_dims, f"MRR@{args.k}", matryoshka_dims)
             
             
