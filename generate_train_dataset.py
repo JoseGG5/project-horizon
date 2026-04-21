@@ -90,6 +90,8 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
+    load_dotenv()
+
     # set logging
     logging.basicConfig(
         filename="trainset_pipe.log",

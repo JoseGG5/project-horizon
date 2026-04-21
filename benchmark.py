@@ -229,6 +229,7 @@ if __name__ == "__main__":
         help="the model to benchmark (if no weights are provided) (Alibaba-NLP/gte-modernbert-base or joe32140/ModernBERT-base-msmarco)",
         required=False
         )
+    parser.add_argument("-pd", "--path_data", type=str, help="Path where your data lives")
     parser.add_argument("-mt", "--matry", action="store_true", help="compute matryoshka benchmarking or not")
     
     args = parser.parse_args()
@@ -240,7 +241,7 @@ if __name__ == "__main__":
     )
     
     # load horizon projects
-    projects = load_projects("data", mono=True)
+    projects = load_projects(args.path_data, mono=True)
     
     # load the evaluation set
     dataset = load_set(path_set=args.path)

@@ -176,8 +176,6 @@ if __name__ == "__main__":
         record = {"query": query, "positives": top_valid["doc_id"].values.tolist()}
         eval_set.append(record)
         
-        print(eval_set)
-        break
     
 
 
