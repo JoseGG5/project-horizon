@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 from utils import load_projects, load_eval_set
 
+# TODO: Add Matryoshka test to compare both tuned model and base model in different d
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark")
@@ -23,10 +24,10 @@ if __name__ == "__main__":
     
     # if not fine tuned we benchmark the gte base which is suited for retrieval
     if not args.weights:
-        # model = SentenceTransformer("Alibaba-NLP/gte-modernbert-base")
-        # model.save("models/gte-modernbert-base")
-        model = SentenceTransformer("joe32140/ModernBERT-base-msmarco")
-        model.save("models/ModernBERT-base-msmarco")
+        model = SentenceTransformer("Alibaba-NLP/gte-modernbert-base")
+        model.save("models/gte-modernbert-base")
+        # model = SentenceTransformer("joe32140/ModernBERT-base-msmarco")
+        # model.save("models/ModernBERT-base-msmarco")
     else:
         model = SentenceTransformer(args.weights)
     
