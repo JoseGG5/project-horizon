@@ -1,8 +1,8 @@
 # Project
 
-Fine-tuning and benchmarking a retrieval model for European funded projects using the FP7, H2020, and HORIZON corpora.
+Scientific projects often contain highly specialized terminology, long technical objectives, and nuanced semantic relationships that generic embedding models do not always capture effectively. Domain adaptation through fine-tuning can significantly improve retrieval quality by aligning the encoder with the language, structure, and intent patterns of this specific type of content.
 
-The goal of this repository is to adapt a `SentenceTransformer` <3 model based on ModernBERT so it retrieves project summaries better than a general-purpose encoder on this domain.
+The goal of this repository is to adapt a `SentenceTransformer` <3 model based on ModernBERT so it retrieves project summaries (from FP7, H2020, and HORIZON data) better than a general-purpose encoder on this domain.
 
 ## Current Results
 
