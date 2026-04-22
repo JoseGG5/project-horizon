@@ -12,6 +12,8 @@ The fine-tuned retriever improves over the compared baselines on both `Recall@k`
 
 ![MRR comparison](assets/compare_mrr.png)
 
+You can find the model on [HuggingFace <3](https://huggingface.co/josegg5/ModernBERT-projects-retriever)
+
 ## What This Repo Does
 
 This project covers the full retrieval pipeline:
