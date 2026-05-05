@@ -1,34 +1,57 @@
 services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: projects-db
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: projects-api
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT}:8000"
+    volumes:
+      - ../data:/data:ro
+      - ../models:/models:ro
+
   ray:
     build:
       context: ./ray
       dockerfile: Dockerfile
     container_name: projects-ray-serve
+    env_file:
+      - .env
     ports:
-      - "${RAY_SERVE_PORT:-8001}:8000"
-      - "${DASHBOARD_PORT:-8267}:${DASHBOARD_PORT:-8267}"
-      - "${METRICS_EXPORT_PORT:-8080}:8080"
-    environment:
-      MODEL_PATH: ${MODEL_PATH:-/models/checkpoint-600}
-      NORMALIZE_EMBEDDINGS: ${NORMALIZE_EMBEDDINGS:-true}
-      MAX_BATCH_SIZE: ${MAX_BATCH_SIZE:-32}
-      NUM_REPLICAS: ${NUM_REPLICAS:-1}
-      RAY_NUM_CPUS: ${RAY_NUM_CPUS:-1}
-      RAY_NUM_GPUS: ${RAY_NUM_GPUS:-1}
-      SERVE_HOST: ${SERVE_HOST:-0.0.0.0}
-      SERVE_PORT: ${SERVE_PORT:-8000}
-      DASHBOARD_HOST: ${DASHBOARD_HOST:-0.0.0.0}
-      DASHBOARD_PORT: ${DASHBOARD_PORT:-8267}
-      METRICS_EXPORT_PORT: ${METRICS_EXPORT_PORT:-8080}
-      NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
-      NVIDIA_DRIVER_CAPABILITIES: ${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+      - "${RAY_SERVE_PORT}:8000"
+      - "${DASHBOARD_PORT}:${DASHBOARD_PORT}"
+      - "${METRICS_EXPORT_PORT}:8080"
     volumes:
       - ../models:/models:ro
-    shm_size: "${RAY_SHM_SIZE:-2gb}"
+    shm_size: "${RAY_SHM_SIZE}"
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: ${NVIDIA_GPU_COUNT:-1}
+              count: ${NVIDIA_GPU_COUNT}
               capabilities: [gpu]
+
+volumes:
+  postgres_data:
