@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "ray"
+    # For this demo we keep Prometheus simple and scrape the fixed Ray metrics
+    # endpoint directly. Ray's docs also support auto-discovery, but a static
+    # target is easier to reason about while we only have one Ray container.
+    static_configs:
+      - targets: ["ray:8080"]
