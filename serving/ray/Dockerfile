@@ -6,14 +6,13 @@ WORKDIR /serve_app
 
 ENV UV_SYSTEM_PYTHON=1
 
-COPY --from=ghcr.io/astral-sh/uv:0.7.3 /uv /uvx /bin/
+RUN python -m pip install --no-cache-dir uv==0.7.3
 
 COPY requirements.txt /serve_app/requirements.txt
 RUN uv pip install --no-cache-dir -r /serve_app/requirements.txt
 
 COPY entrypoint.sh /serve_app/entrypoint.sh
 COPY serve_app.py /serve_app/serve_app.py
-COPY README.md /serve_app/README.md
 
 RUN chmod +x /serve_app/entrypoint.sh \
     && chown -R ray:users /serve_app
