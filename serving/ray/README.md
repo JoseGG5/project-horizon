@@ -24,7 +24,7 @@ Or from `serving/` with Compose:
 
 ```bash
 cd serving
-cp .env.example .env
+cp .env.template .env
 docker compose up --build
 ```
 
@@ -62,6 +62,8 @@ With the default compose settings, these URLs are exposed on the host:
 - `http://localhost:8001/embed`
 - `http://localhost:8267` for the Ray Dashboard
 - `http://localhost:8080` for the Ray Prometheus metrics endpoint
+- `http://localhost:9090` for Prometheus
+- `http://localhost:3000` for Grafana
 
 Example request:
 
@@ -87,3 +89,31 @@ curl -X POST http://localhost:8001/embed \
 - `DASHBOARD_HOST`: HTTP bind host for the Ray Dashboard
 - `DASHBOARD_PORT`: HTTP bind port for the Ray Dashboard
 - `METRICS_EXPORT_PORT`: Prometheus metrics export port for Ray
+- `RAY_GRAFANA_HOST`: URL Ray uses internally to reach Grafana
+- `RAY_GRAFANA_IFRAME_HOST`: URL the browser uses to load Grafana iframes
+- `RAY_PROMETHEUS_HOST`: URL Ray uses internally to reach Prometheus
+- `RAY_PROMETHEUS_NAME`: Grafana datasource name used by Ray
+- `RAY_GRAFANA_ORG_ID`: Grafana organization id used by Ray
+
+## Monitoring Notes
+
+The monitoring stack is split into three pieces:
+
+- Ray exports metrics on `:8080`
+- Prometheus scrapes those metrics
+- Grafana visualizes them and Ray Dashboard embeds some of those panels
+
+Two implementation details are easy to miss:
+
+1. Prometheus uses a simple static scrape config for `ray:8080`
+
+This is enough for the current single-container demo and is easier to debug than
+dynamic discovery.
+
+2. Grafana dashboards are copied out of the Ray container at runtime
+
+Ray generates its dashboard JSON files under
+`/tmp/ray/session_latest/metrics/grafana/dashboards` only after the cluster has
+started. Because `session_latest` is a symlink, we do not mount it directly
+into Grafana. Instead, `sync_observability_assets.sh` copies those JSON files to
+a shared Docker volume that Grafana watches.
