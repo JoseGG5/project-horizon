@@ -44,6 +44,10 @@ services:
       - "${METRICS_EXPORT_PORT}:8080"
     volumes:
       - ../models:/models:ro
+      # Ray generates Grafana dashboard JSONs at runtime under /tmp/ray/... .
+      # We copy those files into this real shared volume because Docker volume
+      # mounts do not handle Ray's session_latest symlink reliably.
+      - ray_grafana_dashboards:/ray-observability/grafana
     shm_size: "${RAY_SHM_SIZE}"
     deploy:
       resources:
@@ -53,5 +57,39 @@ services:
               count: ${NVIDIA_GPU_COUNT}
               capabilities: [gpu]
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: projects-prometheus
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+
+  grafana:
+    image: grafana/grafana:11.1.5
+    container_name: projects-grafana
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      # Ray Dashboard embeds Grafana panels in an iframe, so embedding must be enabled.
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      # Anonymous viewer access keeps the local demo simple and avoids iframe auth issues.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_USERS_DEFAULT_THEME: "light"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      # These dashboards are copied out of the Ray container at runtime.
+      - ray_grafana_dashboards:/var/lib/grafana/dashboards/ray-generated:ro
+      - grafana_data:/var/lib/grafana
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
+  ray_grafana_dashboards:
